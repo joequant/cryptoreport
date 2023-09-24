@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+"""
+Usage:
+  pipeline_coupler.py [--debug]
+"""
+
 import logging
 import os
 import pandas as pd
@@ -7,9 +13,9 @@ from truflation.data.pipeline import Pipeline
 from truflation.data.pipeline_details import PipeLineDetails
 from truflation.data.source_details import SourceDetails
 from truflation.data.export_details import ExportDetails
-from balances import get_evm_balance, get_tron_balance
 from balances import get_evm_token_balance, get_trc20_token_balance
 from balances import get_btc_balance
+from docopt import docopt
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -54,13 +60,22 @@ def get_value(row):
         )
     elif chain == 'trx':
         json_object = get_trc20_token_balance(wallet, token)
-    print(json_object)
-    return None
+    return json_object
 
 def transformer(inputs: dict):
     outputs = pd.DataFrame()
-    inputs['wallets'].apply(get_value, axis=1)
-    return outputs
+    new_df = inputs['wallets'].apply(
+        lambda row: pd.Series(get_value(row)), axis=1
+    )
+    logging.debug(new_df)
+    result = pd.concat(
+        [inputs['wallets'], new_df],
+        axis=1
+    ).fillna({'token': ''})
+    result['total_value_usd'] = result['price_usd'] * result['balance']
+    return {
+        'result': result
+    }
 
 def get_details(**config):
     sources = [
@@ -73,9 +88,10 @@ def get_details(**config):
 
     exports = [
         ExportDetails(
-            'report',
+            'result',
             "csv:csv",
-            'report.csv'
+            'result.csv',
+            replace=True
         )
     ]
 
@@ -87,7 +103,9 @@ def get_details(**config):
     )
 
 if __name__ == "__main__":
-#    logging.basicConfig(level=logging.DEBUG)
+    args = docopt(__doc__)
+    if args['--debug']:
+        logging.basicConfig(level=logging.DEBUG)
     pipeline_details = get_details()
     my_pipeline = Pipeline(pipeline_details)
     my_pipeline.ingest()

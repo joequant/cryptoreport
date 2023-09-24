@@ -8,6 +8,7 @@ from truflation.data.pipeline import Pipeline
 from truflation.data.pipeline_details import PipeLineDetails
 from truflation.data.source_details import SourceDetails
 from truflation.data.export_details import ExportDetails
+from balances import get_evm_balance, get_tron_balance
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -24,29 +25,25 @@ def get_value(row):
         d = response.json()
         print(d['final_balance'])
     elif row['blockchain'] == 'eth':
-        response = requests.get(
-            f'https://api.etherscan.io/api?module=account&action=balance&address={wallet}&tag=latest&apikey={ETHERSCAN_KEY}'
+        object = get_evm_balance(
+            wallet, 'api.etherscan.io', 'ethereum', ETHERSCAN_KEY
         )
-        d = response.json()
-        print(d)
+        print(object)
         response = requests.get(
             f'https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=0x57d90b64a1a57749b0f932f1a3395792e12e7055&address={wallet}&tag=latest&apikey={ETHERSCAN_KEY}'
         )
         d = response.json()
     elif row['blockchain'] == 'bnb':
-        response = requests.get(
-            f'https://api.bscscan.com/api?module=account&action=balance&address={wallet}&tag=latest&apikey={BSCSCAN_KEY}'
+        object = get_evm_balance(
+            wallet, 'api.bscscan.com', 'binancecoin', BSCSCAN_KEY
         )
-        d = response.json()
+        print(object)
         response = requests.get(
             f'https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress=0x57d90b64a1a57749b0f932f1a3395792e12e7055&address={wallet}&tag=latest&apikey={BSCSCAN_KEY}'
         )
     elif row['blockchain'] == 'trx':
-        response = requests.get(
-            f'https://apilist.tronscanapi.com/api/account/wallet?address={wallet}&asset_type=0'
-        )
-        d = response.json()
-        print(d)
+        object = get_tron_balance(wallet)
+        print(object)
     return None
 
 def transformer(inputs: dict):

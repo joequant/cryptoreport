@@ -31,43 +31,30 @@ CONTRACTS = {
 def get_value(row):
     wallet = row['wallet']
     chain = row['blockchain']
+    token = CONTRACTS.get(chain)
+    if token is not None:
+        token = token.get(row['token'], None)
     if chain == 'btc':
-        object = get_btc_balance(wallet)
-        print(object)
+        json_object = get_btc_balance(wallet)
     elif chain == 'eth':
-        object = get_evm_balance(
-            wallet, 'api.etherscan.io', 'ethereum', ETHERSCAN_KEY
+        json_object = get_evm_token_balance(
+            wallet,
+            'api.etherscan.io',
+            'ethereum',
+            token,
+            ETHERSCAN_KEY
         )
-        print(object)
-        for token, address in CONTRACTS[chain].items():
-            object = get_evm_token_balance(
-                wallet,
-                'api.etherscan.io',
-                'ethereum',
-                address,
-                ETHERSCAN_KEY
-            )
-            print(object)
     elif chain == 'bnb':
-        object = get_evm_balance(
-            wallet, 'api.bscscan.com', 'binancecoin', BSCSCAN_KEY
+        json_object = get_evm_token_balance(
+            wallet,
+            'api.bscscan.com',
+            'binancecoin' if token is None else 'binance-smart-chain',
+            token,
+            BSCSCAN_KEY
         )
-        print(object)
-        for token, address in CONTRACTS[chain].items():
-            object = get_evm_token_balance(
-                wallet,
-                'api.bscscan.com',
-                'binance-smart-chain',
-                address,
-                BSCSCAN_KEY
-            )
-            print(object)
     elif chain == 'trx':
-        object = get_tron_balance(wallet)
-        print(object)
-        for token, address in CONTRACTS[chain].items():
-            object = get_trc20_token_balance(wallet, address)
-            print(object)
+        json_object = get_trc20_token_balance(wallet, token)
+    print(json_object)
     return None
 
 def transformer(inputs: dict):
@@ -100,7 +87,7 @@ def get_details(**config):
     )
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+#    logging.basicConfig(level=logging.DEBUG)
     pipeline_details = get_details()
     my_pipeline = Pipeline(pipeline_details)
     my_pipeline.ingest()
